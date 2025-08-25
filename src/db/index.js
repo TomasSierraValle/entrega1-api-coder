@@ -12,14 +12,13 @@ async function ensureDataFiles() {
 
   for (const { file, initial } of files) {
     try {
-      await fs.access(file); // existe? listo
+      await fs.access(file);
     } catch {
-      // no existe -> crear carpeta y archivo
       await fs.mkdir(path.dirname(file), { recursive: true });
       await fs.writeFile(file, initial, 'utf-8');
     }
 
-    // Lectura segura: si el archivo está vacío/corrupto, lo reescribimos como []
+    // Lectura segura: si el archivo está vacío/corrupto, se rehace como []
     try {
       const content = await fs.readFile(file, 'utf-8');
       JSON.parse(content);

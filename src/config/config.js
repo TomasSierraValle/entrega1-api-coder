@@ -7,10 +7,8 @@ const ROOT_DIR = process.cwd();
 const DATA_DIR = process.env.DATA_DIR || 'data';
 
 module.exports = {
-  // Puerto de la app
   port: Number(process.env.PORT) || 8080,
 
-  // Rutas útiles para la persistencia con archivos JSON
   paths: {
     root: ROOT_DIR,
     dataDir: path.join(ROOT_DIR, DATA_DIR),
