@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "title": "Leche entera La Serenísima 1L",
+    "description": "Leche entera larga vida en envase Tetra Brik",
+    "code": "LE001",
+    "price": 1200,
+    "status": true,
+    "stock": 50,
+    "category": "lácteos",
+    "thumbnails": [
+      "leche1.jpg"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Carne molida vacuna 1Kg",
+    "description": "Carne molida de res fresca, envasada al vacío",
+    "code": "CM001",
+    "price": 4200,
+    "status": true,
+    "stock": 25,
+    "category": "carnicería",
+    "thumbnails": [
+      "carne_molida.jpg"
+    ]
+  }
+]
