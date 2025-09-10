@@ -1,14 +1,14 @@
-const app = require('./app');              // importamos la app ya configurada
+const { httpServer } = require('./app');     //importás el server
 const { port } = require('./src/config/config');
-const { ensureDataFiles } = require('./src/db'); // opcional: crea data/products.json y carts.json si no existen
+const { ensureDataFiles } = require('./src/db');
 
 (async () => {
   try {
     if (typeof ensureDataFiles === 'function') {
-      await ensureDataFiles();             // asegura que existan los archivos de persistencia
+      await ensureDataFiles();
     }
 
-    app.listen(port, () => {
+    httpServer.listen(port, () => {          //escucha con el httpServer
       console.log(`🚀 Servidor escuchando en http://localhost:${port}`);
     });
   } catch (err) {

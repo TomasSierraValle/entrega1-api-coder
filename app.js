@@ -1,28 +1,52 @@
+const path = require('path');
 const express = require('express');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
+const exphbs = require('express-handlebars');
+
 const productRoutes = require('./src/routes/productRoutes');
 const cartRoutes = require('./src/routes/cartRoutes');
+const viewsRouter = require('./src/routes/viewsRoutes');
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer);
+
+//guardar io en la app para usarlo en cualquier ruta
+app.set('io', io);
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/public', express.static(path.join(__dirname, 'public'))); //js del cliente socket
+
+// Handlebars
+app.engine('handlebars', exphbs.engine());
+app.set('view engine', 'handlebars');
+app.set('views', path.join(__dirname, 'src', 'views'));
 
 // APIs
 app.use('/api/products', productRoutes);
 app.use('/api/carts', cartRoutes);
 
-// Ruta de prueba y health
-app.get('/', (req, res) => res.send('Servidor funcionando 🚀'));
+// Vistas
+app.use('/', viewsRouter);
+
+// Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// 404 para rutas no existentes
-app.use((req, res) => res.status(404).json({ error: 'Ruta no valida' }));
+// 404
+app.use((req, res) => res.status(404).json({ error: 'Ruta no válida' }));
 
-// 500 error servidor
+// 500
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-module.exports = app; // 👈 exportá la app, sin listen ni IIFE
+// Socket.io básico
+io.on('connection', socket => {
+  console.log('Cliente conectado:', socket.id);
+});
+
+module.exports = { app, httpServer }; //exportás ambos modulos

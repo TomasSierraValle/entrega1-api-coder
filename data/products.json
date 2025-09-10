@@ -24,5 +24,16 @@
     "thumbnails": [
       "carne_molida.jpg"
     ]
+  },
+  {
+    "id": 3,
+    "title": "Aceite natura",
+    "description": "aceite 500ml",
+    "code": "755043",
+    "price": 19100,
+    "status": true,
+    "stock": 4,
+    "category": "Aceites",
+    "thumbnails": []
   }
 ]

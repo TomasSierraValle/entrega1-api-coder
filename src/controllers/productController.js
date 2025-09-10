@@ -1,53 +1,86 @@
-const productService = require('../services/productService');
+const service = require('../services/productService'); // ajusta el path a tu servicio
 
-async function list(req, res) {
+// GET /api/products
+exports.list = async (req, res, next) => {
   try {
-    const all = await productService.getAll();
-    res.json(all);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-}
+    const products = await service.getAllProducts();
+    res.json(products);
+  } catch (err) { next(err); }
+};
 
-async function get(req, res) {
+// GET /api/products/:pid
+exports.get = async (req, res, next) => {
   try {
-    const p = await productService.getById(req.params.pid);
-    if (!p) return res.status(404).json({ error: 'Producto no encontrado' });
-    res.json(p);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-}
+    const prod = await service.getById(req.params.pid);
+    if (!prod) return res.status(404).json({ error: 'No encontrado' });
+    res.json(prod);
+  } catch (err) { next(err); }
+};
 
-async function create(req, res) {
+// POST /api/products
+exports.create = async (req, res, next) => {
   try {
-    const created = await productService.create(req.body);
-    res.status(201).json(created);
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
-}
+    // casteos si vienen como string
+    const price = Number(req.body.price);
+    const stock = req.body.stock != null ? Number(req.body.stock) : 0;
 
-async function update(req, res) {
+    const payload = {
+      title: req.body.title ?? '',
+      description: req.body.description ?? '-',     // default
+      code: req.body.code ?? `P-${Date.now()}`,     // default único
+      price,
+      stock: Number.isFinite(stock) ? stock : 0,
+      category: req.body.category ?? 'general',     // default
+      status: req.body.status ?? true,
+      thumbnails: Array.isArray(req.body.thumbnails) ? req.body.thumbnails : []
+    };
+
+    const prod = await service.create(payload);
+    const products = await service.getAll();
+
+    const io = req.app.get('io');
+    if (io) io.emit('products:updated', { action: 'create', product: prod, products });
+
+    res.status(201).json(prod);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PUT /api/products/:pid
+exports.update = async (req, res, next) => {
   try {
-    const up = await productService.update(req.params.pid, req.body);
-    res.json(up);
-  } catch (e) {
-    res
-      .status(e.message.includes('no encontrado') ? 404 : 400)
-      .json({ error: e.message });
-  }
-}
+    const updated = await service.updateProduct(req.params.pid, req.body);
+    if (!updated) return res.status(404).json({ error: 'No encontrado' });
 
-async function remove(req, res) {
+    // Opcional: volver a leer todo para enviar lista actualizada
+    const products = await service.getAllProducts();
+    req.app.get('io').emit('products:updated', {
+      action: 'update',
+      product: updated,
+      products
+    });
+
+    res.json(updated);
+  } catch (err) { next(err); }
+};
+
+// DELETE /api/products/:pid
+exports.remove = async (req, res, next) => {
   try {
-    const del = await productService.remove(req.params.pid);
-    res.json({ message: 'Producto eliminado', deleted: del });
-  } catch (e) {
-    res
-      .status(e.message.includes('no encontrado') ? 404 : 400)
-      .json({ error: e.message });
-  }
-}
+    const ok = await service.deleteProduct(req.params.pid);
+    if (!ok) return res.status(404).json({ error: 'No encontrado' });
 
-module.exports = { list, get, create, update, remove };
+    const products = await service.getAllProducts();
+    req.app.get('io').emit('products:updated', {
+      action: 'delete',
+      id: Number(req.params.pid),
+      products
+    });
+
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+};
+
+
+//module.exports = { list, get, create, update, remove };
