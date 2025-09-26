@@ -1,86 +1,71 @@
-const service = require('../services/productService'); // ajusta el path a tu servicio
+const Product = require('../models/products');
 
-// GET /api/products
-exports.list = async (req, res, next) => {
-  try {
-    const products = await service.getAllProducts();
-    res.json(products);
-  } catch (err) { next(err); }
+const buildFilter = (q) => {
+  if (!q) return {};
+  const s = String(q).trim();
+  if (s.startsWith('category:')) return { category: s.split('category:')[1] };
+  if (s.startsWith('status:'))   return { status: s.split('status:')[1] === 'true' };
+  if (s.startsWith('available:')) return { stock: { $gt: 0 } };
+  return { category: s };
 };
 
-// GET /api/products/:pid
-exports.get = async (req, res, next) => {
-  try {
-    const prod = await service.getById(req.params.pid);
-    if (!prod) return res.status(404).json({ error: 'No encontrado' });
-    res.json(prod);
-  } catch (err) { next(err); }
+const buildSort = (sort) => {
+  if (!sort) return null;
+  if (String(sort).toLowerCase() === 'asc')  return { price: 1 };
+  if (String(sort).toLowerCase() === 'desc') return { price: -1 };
+  return null;
 };
 
-// POST /api/products
-exports.create = async (req, res, next) => {
+const buildLink = (req, page) => {
+  if (!page) return null;
+  const url = new URL(`${req.protocol}://${req.get('host')}${req.baseUrl}${req.path}`);
+  const params = new URLSearchParams(req.query);
+  params.set('page', page);
+  url.search = params.toString();
+  return url.toString();
+};
+
+exports.getProducts = async (req, res) => {
   try {
-    // casteos si vienen como string
-    const price = Number(req.body.price);
-    const stock = req.body.stock != null ? Number(req.body.stock) : 0;
+    const limit = Math.max(parseInt(req.query.limit ?? '10', 10), 1);
+    const page  = Math.max(parseInt(req.query.page  ?? '1', 10), 1);
+    const filter = buildFilter(req.query.query);
+    const sort   = buildSort(req.query.sort);
+    const skip   = (page - 1) * limit;
 
-    const payload = {
-      title: req.body.title ?? '',
-      description: req.body.description ?? '-',     // default
-      code: req.body.code ?? `P-${Date.now()}`,     // default único
-      price,
-      stock: Number.isFinite(stock) ? stock : 0,
-      category: req.body.category ?? 'general',     // default
-      status: req.body.status ?? true,
-      thumbnails: Array.isArray(req.body.thumbnails) ? req.body.thumbnails : []
-    };
+    const [totalDocs, items] = await Promise.all([
+      Product.countDocuments(filter),
+      Product.find(filter).sort(sort || {}).skip(skip).limit(limit).lean()
+    ]);
 
-    const prod = await service.create(payload);
-    const products = await service.getAll();
+    const totalPages = Math.max(Math.ceil(totalDocs / limit), 1);
+    const hasPrevPage = page > 1;
+    const hasNextPage = page < totalPages;
 
-    const io = req.app.get('io');
-    if (io) io.emit('products:updated', { action: 'create', product: prod, products });
-
-    res.status(201).json(prod);
-  } catch (err) {
-    next(err);
+    res.json({
+      status: 'success',
+      payload: items,
+      totalPages,
+      prevPage: hasPrevPage ? page - 1 : null,
+      nextPage: hasNextPage ? page + 1 : null,
+      page,
+      hasPrevPage,
+      hasNextPage,
+      prevLink: hasPrevPage ? buildLink(req, page - 1) : null,
+      nextLink: hasNextPage ? buildLink(req, page + 1) : null
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ status: 'error', error: 'Internal Server Error' });
   }
 };
 
-// PUT /api/products/:pid
-exports.update = async (req, res, next) => {
+exports.getProductById = async (req, res) => {
   try {
-    const updated = await service.updateProduct(req.params.pid, req.body);
-    if (!updated) return res.status(404).json({ error: 'No encontrado' });
-
-    // Opcional: volver a leer todo para enviar lista actualizada
-    const products = await service.getAllProducts();
-    req.app.get('io').emit('products:updated', {
-      action: 'update',
-      product: updated,
-      products
-    });
-
-    res.json(updated);
-  } catch (err) { next(err); }
+    const p = await Product.findById(req.params.pid).lean();
+    if (!p) return res.status(404).json({ status: 'error', error: 'Product not found' });
+    res.json({ status: 'success', payload: p });
+  } catch {
+    res.status(400).json({ status: 'error', error: 'Invalid id' });
+  }
 };
-
-// DELETE /api/products/:pid
-exports.remove = async (req, res, next) => {
-  try {
-    const ok = await service.deleteProduct(req.params.pid);
-    if (!ok) return res.status(404).json({ error: 'No encontrado' });
-
-    const products = await service.getAllProducts();
-    req.app.get('io').emit('products:updated', {
-      action: 'delete',
-      id: Number(req.params.pid),
-      products
-    });
-
-    res.json({ ok: true });
-  } catch (err) { next(err); }
-};
-
-
-//module.exports = { list, get, create, update, remove };

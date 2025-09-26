@@ -10,3 +10,7 @@ yarn-error.log*
 # SO
 .DS_Store
 Thumbs.db
+
+# OS
+.DS_Store
+Thumbs.db

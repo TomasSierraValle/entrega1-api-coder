@@ -1,0 +1,88 @@
+<h1 class="mb-4">Productos</h1>
+
+<form method="get" action="/products" class="row g-2 mb-4">
+  <div class="col-md-4">
+    <input type="text" class="form-control" name="query" placeholder="Filtrar (ej: category:Bebidas)" value="{{query}}">
+  </div>
+  <div class="col-md-2">
+    <select class="form-select" name="sort">
+      <option value="">Sin orden</option>
+      <option value="asc" {{#if sortAsc}}selected{{/if}}>Precio ↓</option>
+      <option value="desc" {{#if sortDesc}}selected{{/if}}>Precio ↑</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <select class="form-select" name="limit">
+      <option value="5" {{#if limit5}}selected{{/if}}>5</option>
+      <option value="10" {{#if limit10}}selected{{/if}}>10</option>
+      <option value="20" {{#if limit20}}selected{{/if}}>20</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <button type="submit" class="btn btn-primary w-100">Aplicar</button>
+  </div>
+</form>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+  {{#each products}}
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{{this.title}}</h5>
+          <p class="card-text">Categoría: {{this.category}}</p>
+          <p class="card-text">Precio: <strong>$ {{this.price}}</strong></p>
+          <p class="card-text"><small class="text-muted">Stock: {{this.stock}}</small></p>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+          <a href="/products/{{this._id}}" class="btn btn-outline-secondary">Detalle</a>
+          <button class="btn btn-success btn-add" data-pid="{{this._id}}">Agregar</button>
+        </div>
+      </div>
+    </div>
+  {{/each}}
+</div>
+
+<nav class="d-flex justify-content-between align-items-center mt-4">
+  {{#if hasPrevPage}}
+    <a href="{{prevLink}}" class="btn btn-outline-primary">« Anterior</a>
+  {{else}}
+    <span></span>
+  {{/if}}
+  <span>Página {{page}} de {{totalPages}}</span>
+  {{#if hasNextPage}}
+    <a href="{{nextLink}}" class="btn btn-outline-primary">Siguiente »</a>
+  {{else}}
+    <span></span>
+  {{/if}}
+</nav>
+
+<script>
+  const getCartId = async () => {
+    let cid = localStorage.getItem('cartId');
+    if (!cid) {
+      const r = await fetch('/api/carts', { method: 'POST' });
+      const j = await r.json();
+      cid = j.payload._id;
+      localStorage.setItem('cartId', cid);
+    }
+    return cid;
+  };
+
+  document.querySelectorAll('.btn-add').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const pid = btn.dataset.pid;
+      const cid = await getCartId();
+      const r = await fetch(`/api/carts/${cid}/products/${pid}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 })
+      });
+      const j = await r.json();
+      if (j.status === 'success') {
+        alert('Producto agregado al carrito');
+      } else {
+        alert('Error: ' + j.error);
+      }
+    });
+  });
+</script>

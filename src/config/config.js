@@ -1,5 +1,4 @@
-
-// Lee variables desde .env
+// src/config/config.js
 require('dotenv').config();
 const path = require('path');
 
@@ -9,6 +8,9 @@ const DATA_DIR = process.env.DATA_DIR || 'data';
 module.exports = {
   port: Number(process.env.PORT) || 8080,
 
+  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/coder_entrega_final',
+
+  // rutas a archivos (ya no usadas en Mongo, pero quedan para compatibilidad)
   paths: {
     root: ROOT_DIR,
     dataDir: path.join(ROOT_DIR, DATA_DIR),

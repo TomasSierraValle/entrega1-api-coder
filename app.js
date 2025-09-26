@@ -11,16 +11,14 @@ const viewsRouter = require('./src/routes/viewsRoutes');
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
-
-//guardar io en la app para usarlo en cualquier ruta
 app.set('io', io);
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/public', express.static(path.join(__dirname, 'public'))); //js del cliente socket
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
-// Handlebars
+// 👉 Configuración de Handlebars SIN helpers custom
 app.engine('handlebars', exphbs.engine());
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'src', 'views'));
@@ -44,9 +42,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-// Socket.io básico
+// Socket.io
 io.on('connection', socket => {
   console.log('Cliente conectado:', socket.id);
 });
 
-module.exports = { app, httpServer }; //exportás ambos modulos
+module.exports = { app, httpServer };

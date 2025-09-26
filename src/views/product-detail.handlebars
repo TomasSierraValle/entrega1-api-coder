@@ -1,0 +1,30 @@
+<div class="card">
+  <div class="card-body">
+    <h3 class="card-title">{{product.title}}</h3>
+    <p class="card-text">{{product.description}}</p>
+    <p class="card-text">Categoría: {{product.category}}</p>
+    <p class="card-text">Precio: <strong>$ {{product.price}}</strong></p>
+    <p class="card-text">Stock: {{product.stock}}</p>
+    <button id="add" class="btn btn-success">Agregar al carrito</button>
+    <a href="/products" class="btn btn-outline-secondary">Volver</a>
+  </div>
+</div>
+
+<script>
+  const getCartId = async () => {
+    let cid = localStorage.getItem('cartId');
+    if (!cid) {
+      const r = await fetch('/api/carts', { method: 'POST' });
+      const j = await r.json();
+      cid = j.payload._id;
+      localStorage.setItem('cartId', cid);
+    }
+    return cid;
+  };
+  document.getElementById('add').onclick = async () => {
+    const cid = await getCartId();
+    const r = await fetch(`/api/carts/${cid}/products/{{product._id}}`, { method:'POST' });
+    const j = await r.json();
+    alert(j.status === 'success' ? 'Agregado al carrito' : ('Error: ' + j.error));
+  };
+</script>
